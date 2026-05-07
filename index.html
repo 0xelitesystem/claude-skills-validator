@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Skills Validator</title>
+<meta name="description" content="Lint a SKILL.md file for spec compliance: frontmatter, description triggering quality, length caps, banned anti-patterns. Browser-only.">
+<meta name="ai.description" content="Single-file HTML tool for validating Claude Skill SKILL.md files. Parses YAML frontmatter, checks required fields (name, description), evaluates description quality against triggering best practices (specificity, length, trigger phrases), checks body length caps, and flags common anti-patterns. Reports findings with severity tags (blocker, major, minor, nit). No frameworks, no dependencies, no third-party scripts. Light and dark themes.">
+<meta property="og:title" content="Claude Skills Validator">
+<meta property="og:description" content="Lint a SKILL.md file for spec compliance and triggering quality.">
+<meta property="og:type" content="website">
+<style>
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface-2: #f4f4f0;
+  --ink: #1a1625;
+  --ink-soft: #5a5470;
+  --rule: #e0dde6;
+  --rule-strong: #1a1625;
+  --accent: #5b3aa8;
+  --accent-soft: #ede8f8;
+  --blocker: #b3261e;
+  --blocker-bg: #fbe9e7;
+  --major: #a04500;
+  --major-bg: #faecd9;
+  --minor: #1a4d7d;
+  --minor-bg: #dceaf5;
+  --nit: #5a5470;
+  --nit-bg: #f0eef4;
+  --ok: #1f6f43;
+  --ok-bg: #e3f2ea;
+}
+[data-theme="dark"] {
+  --bg: #14101e;
+  --surface: #1f1a2c;
+  --surface-2: #18142a;
+  --ink: #efeaf8;
+  --ink-soft: #b0a8c0;
+  --rule: #2e2742;
+  --rule-strong: #efeaf8;
+  --accent: #b89cff;
+  --accent-soft: #2e2148;
+  --blocker: #f08585;
+  --blocker-bg: #3d2222;
+  --major: #e6a960;
+  --major-bg: #3d2f1c;
+  --minor: #7eb8e6;
+  --minor-bg: #1c2c3d;
+  --nit: #b0a8c0;
+  --nit-bg: #28233a;
+  --ok: #7fc99c;
+  --ok-bg: #1f3327;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.skip-link { position: absolute; left: -9999px; top: 0; background: var(--accent); color: var(--surface); padding: 0.5rem 1rem; z-index: 100; font-weight: 600; }
+.skip-link:focus { left: 1rem; top: 1rem; }
+
+.layout { max-width: 880px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: end;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.brand-mark {
+  display: inline-block;
+  width: 1.25rem; height: 1.25rem;
+  background: var(--accent);
+  margin-bottom: 0.625rem;
+  position: relative;
+  border-radius: 50%;
+}
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: var(--bg);
+  border-radius: 50%;
+}
+.brand {
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+h1 {
+  font-size: clamp(1.625rem, 4vw, 2.375rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+h1 .accent { color: var(--accent); }
+.subtitle { margin-top: 0.625rem; color: var(--ink-soft); font-size: 0.9375rem; max-width: 540px; }
+
+.theme-toggle {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font: inherit; font-size: 0.75rem; font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { background: var(--ink); color: var(--bg); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-toggle svg { width: 14px; height: 14px; }
+
+.section { margin-bottom: 2rem; }
+.section-head {
+  display: flex; align-items: baseline; gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+.section-num {
+  font-family: ui-monospace, monospace;
+  font-size: 0.6875rem; font-weight: 700;
+  color: var(--accent); letter-spacing: 0.08em;
+}
+.section-title {
+  font-size: 0.8125rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: ui-monospace, monospace;
+}
+textarea, input[type="text"] {
+  width: 100%;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.75rem 0.875rem;
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  resize: vertical;
+  min-height: 240px;
+}
+textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+
+.help { margin-top: 0.4rem; font-size: 0.75rem; color: var(--ink-soft); line-height: 1.55; }
+.help a { color: var(--accent); }
+
+.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.875rem; }
+
+button.primary, button.secondary {
+  font: inherit; font-size: 0.8125rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+}
+button.primary {
+  background: var(--accent);
+  color: var(--surface);
+  border: 1px solid var(--accent);
+}
+button.primary:hover:not(:disabled) { filter: brightness(0.92); }
+button.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+}
+button.secondary:hover:not(:disabled) { background: var(--ink); color: var(--bg); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Verdict header */
+.verdict {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+.verdict-tag {
+  display: inline-block;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+}
+.verdict-tag.pass { background: var(--ok); color: var(--surface); }
+.verdict-tag.fail { background: var(--blocker); color: var(--surface); }
+.verdict-meta { color: var(--ink-soft); font-size: 0.875rem; }
+
+/* Severity grid */
+.sev-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.625rem;
+  margin-bottom: 1.25rem;
+}
+.sev-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.75rem 0.625rem;
+  text-align: center;
+}
+.sev-count {
+  font-size: 1.375rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  display: block;
+  line-height: 1.1;
+}
+.sev-label {
+  font-size: 0.625rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  margin-top: 0.3rem;
+}
+.sev-card.blocker .sev-count { color: var(--blocker); }
+.sev-card.major .sev-count { color: var(--major); }
+.sev-card.minor .sev-count { color: var(--minor); }
+.sev-card.nit .sev-count { color: var(--nit); }
+
+/* Findings list */
+.findings { display: flex; flex-direction: column; gap: 0.625rem; }
+.finding {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.875rem 1rem;
+}
+.finding-head {
+  display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+.tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+}
+.tag.blocker { background: var(--blocker); color: var(--surface); }
+.tag.major { background: var(--major); color: var(--surface); }
+.tag.minor { background: var(--minor); color: var(--surface); }
+.tag.nit { background: var(--nit); color: var(--surface); }
+.finding-cat {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: ui-monospace, monospace;
+}
+.finding-msg {
+  font-size: 0.875rem;
+  margin: 0.4rem 0 0.4rem;
+}
+.finding-fix {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  background: var(--accent-soft);
+  padding: 0.5rem 0.75rem;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+}
+.finding-fix::before { content: "Fix: "; font-weight: 600; color: var(--accent); }
+
+.empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+  font-style: italic;
+  background: var(--surface);
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+footer a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+footer a:hover, footer a:focus { color: var(--accent); }
+
+@media (max-width: 560px) {
+  .layout { padding: 1.5rem 1rem 3rem; }
+  h1 { font-size: 1.5rem; }
+  .sev-grid { grid-template-columns: repeat(2, 1fr); }
+  header { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body data-theme="light">
+<a href="#main" class="skip-link">Skip to main content</a>
+<div class="layout">
+
+  <header>
+    <div>
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand">SKILL.md / VALIDATOR</div>
+      <h1>Lint your <span class="accent">Skill files.</span></h1>
+      <p class="subtitle">Paste a SKILL.md file. Get specific findings on frontmatter, triggering quality, length, and common anti-patterns.</p>
+    </div>
+    <button type="button" class="theme-toggle" id="theme-btn" aria-label="Toggle dark theme" aria-pressed="false">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+      </svg>
+      <span id="theme-label">Dark</span>
+    </button>
+  </header>
+
+  <main id="main">
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-num">01</span>
+        <h2 class="section-title">SKILL.md content</h2>
+      </div>
+      <label for="skill-input">Paste your SKILL.md</label>
+      <textarea id="skill-input" spellcheck="false" placeholder="---&#10;name: my-skill&#10;description: Brief description with trigger phrases like &quot;use when X&quot;.&#10;---&#10;&#10;# My Skill&#10;&#10;Body content here..."></textarea>
+      <div class="row">
+        <button type="button" class="primary" id="validate-btn">Validate</button>
+        <button type="button" class="secondary" id="example-btn">Load example</button>
+        <button type="button" class="secondary" id="clear-btn">Clear</button>
+      </div>
+    </section>
+
+    <section class="section" id="results-section" style="display: none;">
+      <div class="section-head">
+        <span class="section-num">02</span>
+        <h2 class="section-title">Report</h2>
+      </div>
+      <div id="verdict-block"></div>
+      <div class="sev-grid" id="sev-grid"></div>
+      <div class="findings" id="findings"></div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Source: <a href="https://github.com/0xelitesystem/claude-skills-validator" target="_blank" rel="noopener">github.com/0xelitesystem/claude-skills-validator</a></p>
+    <p>Pairs with: <a href="https://github.com/0xelitesystem/claude-skills-templates" target="_blank" rel="noopener">claude-skills-templates</a></p>
+    <p>Related: <a href="https://github.com/0xelitesystem/prompt-templates" target="_blank" rel="noopener">prompt-templates</a> &middot; <a href="https://github.com/0xelitesystem/byok-patterns" target="_blank" rel="noopener">byok-patterns</a> &middot; <a href="https://github.com/0xelitesystem/claude-eval-harness" target="_blank" rel="noopener">claude-eval-harness</a></p>
+    <p>No data leaves your browser. MIT licensed. The validator implements heuristics based on the public Agent Skills specification; it is not a definitive authority on what will or will not trigger.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+// =============================================================================
+// Skill validator. Heuristic rules based on public Agent Skills spec.
+// Returns { findings: [...], verdict: 'pass'|'fail' }.
+// =============================================================================
+
+const CHECKS = [
+  {
+    id: "fm-present",
+    severity: "blocker",
+    category: "frontmatter",
+    run: (parsed) => {
+      if (!parsed.hasFrontmatter) {
+        return { fail: true, message: "Missing YAML frontmatter. SKILL.md must start with --- on the first line.", fix: "Add frontmatter delimiters at the top of the file." };
+      }
+    }
+  },
+  {
+    id: "fm-name",
+    severity: "blocker",
+    category: "frontmatter",
+    run: (parsed) => {
+      if (!parsed.hasFrontmatter) return;
+      if (!parsed.fm.name) return { fail: true, message: "Missing required `name` field in frontmatter.", fix: 'Add `name: my-skill-name` to the frontmatter.' };
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(parsed.fm.name)) return { fail: true, message: `Invalid name "${parsed.fm.name}". Use lowercase letters, digits, and hyphens only, starting with a letter or digit.`, fix: "Rename to a slug-style identifier." };
+    }
+  },
+  {
+    id: "fm-description",
+    severity: "blocker",
+    category: "frontmatter",
+    run: (parsed) => {
+      if (!parsed.hasFrontmatter) return;
+      if (!parsed.fm.description) return { fail: true, message: "Missing required `description` field in frontmatter.", fix: "Add a description that includes what the skill does and trigger phrases." };
+    }
+  },
+  {
+    id: "desc-length-min",
+    severity: "major",
+    category: "description",
+    run: (parsed) => {
+      if (!parsed.fm.description) return;
+      if (parsed.fm.description.length < 80) {
+        return { fail: true, message: `Description is too short (${parsed.fm.description.length} chars). Short descriptions trigger unreliably.`, fix: "Expand to at least 80-100 chars; include what the skill does AND when to use it." };
+      }
+    }
+  },
+  {
+    id: "desc-length-max",
+    severity: "minor",
+    category: "description",
+    run: (parsed) => {
+      if (!parsed.fm.description) return;
+      if (parsed.fm.description.length > 1500) {
+        return { fail: true, message: `Description is very long (${parsed.fm.description.length} chars). Long descriptions consume context budget.`, fix: "Trim to roughly 200-800 chars. Move detail into the body." };
+      }
+    }
+  },
+  {
+    id: "desc-when-to-use",
+    severity: "major",
+    category: "description",
+    run: (parsed) => {
+      if (!parsed.fm.description) return;
+      const d = parsed.fm.description.toLowerCase();
+      const triggerHints = ["use when", "use this", "triggers on", "trigger on", "use whenever", "whenever the user", "when the user"];
+      const hasHint = triggerHints.some(h => d.includes(h));
+      if (!hasHint) {
+        return { fail: true, message: 'Description has no explicit "when to use" phrasing. Models trigger more reliably with explicit cues.', fix: 'Include phrases like "Use when the user asks..." or "Triggers on..." with concrete examples.' };
+      }
+    }
+  },
+  {
+    id: "desc-trigger-examples",
+    severity: "minor",
+    category: "description",
+    run: (parsed) => {
+      if (!parsed.fm.description) return;
+      const d = parsed.fm.description;
+      const quotedPhrases = (d.match(/"[^"]+"/g) || []).length;
+      if (quotedPhrases < 2 && d.length < 600) {
+        return { fail: true, message: "Description has fewer than 2 quoted example trigger phrases.", fix: 'Add 2-4 example user phrases in quotes, e.g. "review this code", "audit this PR".' };
+      }
+    }
+  },
+  {
+    id: "desc-vague-words",
+    severity: "minor",
+    category: "description",
+    run: (parsed) => {
+      if (!parsed.fm.description) return;
+      const d = parsed.fm.description.toLowerCase();
+      const vague = ["help with", "anything related to", "various", "everything about", "general purpose"];
+      const found = vague.filter(v => d.includes(v));
+      if (found.length > 0) {
+        return { fail: true, message: `Description contains vague phrasing: ${found.map(s => `"${s}"`).join(", ")}. Vague descriptions overtrigger or undertrigger unpredictably.`, fix: "Replace with concrete trigger phrases users actually type." };
+      }
+    }
+  },
+  {
+    id: "body-present",
+    severity: "major",
+    category: "body",
+    run: (parsed) => {
+      if (parsed.body.trim().length === 0) {
+        return { fail: true, message: "SKILL.md has no body content. The body is what Claude reads when the skill triggers.", fix: "Add a body explaining how to perform the task. Use a `# Skill Name` heading, then sections." };
+      }
+    }
+  },
+  {
+    id: "body-length",
+    severity: "minor",
+    category: "body",
+    run: (parsed) => {
+      const lines = parsed.body.split(/\r?\n/).length;
+      if (lines > 500) {
+        return { fail: true, message: `Body is very long (${lines} lines). Long SKILL.md files burn context whenever the skill triggers.`, fix: "Move detail into bundled resource files (e.g. `references/x.md`, `scripts/y.py`) and reference them from the body." };
+      }
+    }
+  },
+  {
+    id: "body-h1",
+    severity: "nit",
+    category: "body",
+    run: (parsed) => {
+      if (parsed.body.trim().length === 0) return;
+      if (!/^#\s+\S/m.test(parsed.body)) {
+        return { fail: true, message: "Body has no H1 heading. Convention is to start with `# Skill Display Name`.", fix: "Add a top-level heading at the start of the body." };
+      }
+    }
+  },
+  {
+    id: "body-references",
+    severity: "minor",
+    category: "body",
+    run: (parsed) => {
+      if (parsed.body.trim().length === 0) return;
+      // If body mentions references/ or scripts/ but no actual reference is described
+      const mentionsRef = /references\/|scripts\//.test(parsed.body);
+      const fmMentionsRef = parsed.fm.description && /references\/|scripts\//.test(parsed.fm.description);
+      if (mentionsRef && !fmMentionsRef) {
+        return { fail: true, message: "Body references bundled files but the description doesn't tell Claude to read them first.", fix: 'In the description, add a directive like "Always read references/X.md before starting the task."' };
+      }
+    }
+  },
+  {
+    id: "body-meta-language",
+    severity: "nit",
+    category: "body",
+    run: (parsed) => {
+      if (parsed.body.trim().length === 0) return;
+      const meta = ["this skill helps you", "this skill will help", "with this skill you can"];
+      const hits = meta.filter(m => parsed.body.toLowerCase().includes(m));
+      if (hits.length > 0) {
+        return { fail: true, message: "Body uses meta-language about the skill itself. Claude is the one reading this; speak in instructions, not marketing.", fix: 'Replace "This skill helps you X" with imperative instructions, e.g. "To do X: ...".' };
+      }
+    }
+  }
+];
+
+// =============================================================================
+// Frontmatter parser. Lightweight, only handles the cases SKILL.md needs.
+// =============================================================================
+function parseSkill(raw) {
+  const result = {
+    raw,
+    hasFrontmatter: false,
+    fm: {},
+    fmLines: 0,
+    body: raw
+  };
+  if (!raw.startsWith("---\n") && !raw.startsWith("---\r\n")) {
+    return result;
+  }
+  // Find the closing delimiter on its own line
+  const lines = raw.split(/\r?\n/);
+  let closing = -1;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === "---") { closing = i; break; }
+  }
+  if (closing === -1) return result;
+
+  result.hasFrontmatter = true;
+  result.fmLines = closing + 1;
+  const fmBlock = lines.slice(1, closing).join("\n");
+  result.body = lines.slice(closing + 1).join("\n");
+
+  // Parse the YAML — handle scalars and folded multi-line values.
+  // Simple line-by-line parser; supports "key: value" and continuation lines
+  // indented under a key (treated as continuation of that key's value).
+  let currentKey = null;
+  for (const ln of fmBlock.split(/\r?\n/)) {
+    if (ln.trim() === "" || ln.trim().startsWith("#")) continue;
+    const m = ln.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (m) {
+      currentKey = m[1];
+      let value = m[2].trim();
+      // Strip surrounding quotes if matching
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      result.fm[currentKey] = value;
+    } else if (currentKey && /^\s/.test(ln)) {
+      // Continuation
+      const cont = ln.trim();
+      if (cont) result.fm[currentKey] = (result.fm[currentKey] + " " + cont).trim();
+    }
+  }
+  return result;
+}
+
+// =============================================================================
+// Run all checks
+// =============================================================================
+function validateSkill(raw) {
+  const parsed = parseSkill(raw);
+  const findings = [];
+  for (const c of CHECKS) {
+    try {
+      const result = c.run(parsed);
+      if (result && result.fail) {
+        findings.push({
+          id: c.id,
+          severity: c.severity,
+          category: c.category,
+          message: result.message,
+          fix: result.fix
+        });
+      }
+    } catch (err) {
+      findings.push({
+        id: c.id,
+        severity: "minor",
+        category: "validator",
+        message: `Check ${c.id} threw: ${err.message}`,
+        fix: "This is a validator bug. File an issue."
+      });
+    }
+  }
+  // Sort by severity
+  const order = { blocker: 0, major: 1, minor: 2, nit: 3 };
+  findings.sort((a, b) => order[a.severity] - order[b.severity]);
+  // Verdict
+  const counts = { blocker: 0, major: 0, minor: 0, nit: 0 };
+  for (const f of findings) counts[f.severity]++;
+  const verdict = counts.blocker > 0 || counts.major >= 3 ? "fail" : "pass";
+  return { parsed, findings, counts, verdict };
+}
+
+// =============================================================================
+// UI
+// =============================================================================
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+));
+
+function render(report) {
+  $("results-section").style.display = "block";
+
+  // Verdict
+  const v = report.verdict;
+  const stats = `${report.findings.length} finding${report.findings.length === 1 ? "" : "s"}`;
+  $("verdict-block").innerHTML = `
+    <div class="verdict">
+      <span class="verdict-tag ${escapeHtml(v)}">${escapeHtml(v.toUpperCase())}</span>
+      <span class="verdict-meta">${escapeHtml(stats)} &middot; name: <strong>${escapeHtml(report.parsed.fm.name || "(none)")}</strong></span>
+    </div>
+  `;
+
+  // Severity grid
+  $("sev-grid").innerHTML = `
+    <div class="sev-card blocker"><span class="sev-count">${report.counts.blocker}</span><div class="sev-label">Blocker</div></div>
+    <div class="sev-card major"><span class="sev-count">${report.counts.major}</span><div class="sev-label">Major</div></div>
+    <div class="sev-card minor"><span class="sev-count">${report.counts.minor}</span><div class="sev-label">Minor</div></div>
+    <div class="sev-card nit"><span class="sev-count">${report.counts.nit}</span><div class="sev-label">Nit</div></div>
+  `;
+
+  // Findings
+  if (report.findings.length === 0) {
+    $("findings").innerHTML = `<div class="empty">No findings. SKILL.md looks clean.</div>`;
+  } else {
+    let html = "";
+    for (const f of report.findings) {
+      html += `<div class="finding">
+        <div class="finding-head">
+          <span class="tag ${escapeHtml(f.severity)}">${escapeHtml(f.severity)}</span>
+          <span class="finding-cat">${escapeHtml(f.category)}</span>
+          <span class="finding-cat" style="opacity: 0.7;">[${escapeHtml(f.id)}]</span>
+        </div>
+        <div class="finding-msg">${escapeHtml(f.message)}</div>
+        <div class="finding-fix">${escapeHtml(f.fix)}</div>
+      </div>`;
+    }
+    $("findings").innerHTML = html;
+  }
+
+  $("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// =============================================================================
+// Example skill
+// =============================================================================
+const EXAMPLE = `---
+name: one-pager
+description: Turn raw notes, transcripts, or longform content into a tight one-page executive brief. Use whenever the user wants a one-pager, exec brief, briefing doc, or asks to compress longer content into a structured one-page summary. Triggers on phrases like "write a one-pager", "make this a brief", "summarize for an exec", "turn these notes into a brief".
+---
+
+# One-Pager Writer
+
+Converts raw input (notes, transcripts, source articles) into a structured one-page brief.
+
+## Output structure
+
+Always use these five sections in order: TL;DR, Context, Findings, Recommendation, Next Steps.
+
+## Style rules
+
+- No em-dashes
+- No filler openings
+- Concrete over abstract
+- Length cap: roughly 350 words total
+`;
+
+// =============================================================================
+// Wiring
+// =============================================================================
+$("validate-btn").addEventListener("click", () => {
+  const raw = $("skill-input").value;
+  if (raw.trim() === "") {
+    $("results-section").style.display = "block";
+    $("verdict-block").innerHTML = `<div class="verdict"><span class="verdict-tag fail">EMPTY</span><span class="verdict-meta">Paste a SKILL.md to validate.</span></div>`;
+    $("sev-grid").innerHTML = "";
+    $("findings").innerHTML = "";
+    return;
+  }
+  const report = validateSkill(raw);
+  render(report);
+});
+
+$("example-btn").addEventListener("click", () => {
+  $("skill-input").value = EXAMPLE;
+  const report = validateSkill(EXAMPLE);
+  render(report);
+});
+
+$("clear-btn").addEventListener("click", () => {
+  $("skill-input").value = "";
+  $("results-section").style.display = "none";
+  $("skill-input").focus();
+});
+
+$("skill-input").addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    e.preventDefault();
+    $("validate-btn").click();
+  }
+});
+
+// Theme toggle
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  $("theme-label").textContent = theme === "dark" ? "Light" : "Dark";
+  $("theme-btn").setAttribute("aria-pressed", String(theme === "dark"));
+  const icon = $("theme-icon");
+  if (theme === "dark") {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>';
+  }
+}
+$("theme-btn").addEventListener("click", () => {
+  applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+});
+if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  applyTheme("dark");
+}
+</script>
+</body>
+</html>
