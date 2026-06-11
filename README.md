@@ -2,6 +2,8 @@
 
 Lint a Claude Skill `SKILL.md` file for spec compliance and triggering quality. Browser-only, single HTML file.
 
+**Live demo:** https://0xelitesystem.github.io/claude-skills-validator/
+
 ## Why
 
 A SKILL.md is a contract between you and Claude. The `description` field decides whether the skill triggers; the body decides what Claude does once it triggers. Both fields have failure modes:
@@ -46,10 +48,10 @@ Click "Load example" to see the validator working against a known-good SKILL.md.
 
 ## Severity scale
 
-- **blocker** — must fix; the skill won't load or won't trigger reliably
-- **major** — should fix before shipping; will hurt triggering quality
-- **minor** — improve when convenient
-- **nit** — style preference
+- **blocker**, must fix; the skill won't load or won't trigger reliably
+- **major**, should fix before shipping; will hurt triggering quality
+- **minor**, improve when convenient
+- **nit**, style preference
 
 The verdict is `fail` if there is any blocker or 3 or more majors. Otherwise `pass`.
 
@@ -81,7 +83,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Related
 
-- [claude-skills-templates](https://github.com/0xelitesystem/claude-skills-templates) — five reference Skill patterns
-- [prompt-templates](https://github.com/0xelitesystem/prompt-templates) — production prompts targeting LLM failure modes
-- [claude-eval-harness](https://github.com/0xelitesystem/claude-eval-harness) — run a prompt against multiple Claude models
-- [readme-slop-checker](https://github.com/0xelitesystem/readme-slop-checker) — audit a README for AI cliches
+- [claude-skills-templates](https://github.com/0xelitesystem/claude-skills-templates), five reference Skill patterns
+- [prompt-templates](https://github.com/0xelitesystem/prompt-templates), production prompts targeting LLM failure modes
+- [claude-eval-harness](https://github.com/0xelitesystem/claude-eval-harness), run a prompt against multiple Claude models
+- [readme-slop-checker](https://github.com/0xelitesystem/readme-slop-checker), audit a README for AI cliches
