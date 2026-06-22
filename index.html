@@ -368,6 +368,7 @@ footer a:hover, footer a:focus { color: var(--accent); }
       <div class="row">
         <button type="button" class="primary" id="validate-btn">Validate</button>
         <button type="button" class="secondary" id="example-btn">Load example</button>
+        <button type="button" class="secondary" id="tool-example-btn">Load tool example</button>
         <button type="button" class="secondary" id="clear-btn">Clear</button>
       </div>
     </section>
@@ -718,6 +719,23 @@ Always use these five sections in order: TL;DR, Context, Findings, Recommendatio
 - Length cap: roughly 350 words total
 `;
 
+const TOOL_EXAMPLE = `---
+name: tweetclaw-operator
+description: Route X/Twitter research, monitoring, and publishing workflows through TweetClaw. Use whenever the user asks for authenticated X data, an OpenClaw Twitter workflow, tweet search evidence, or approval-gated posting. Triggers on phrases like "search X for launch reactions", "draft a reply with TweetClaw", "monitor this account", "export followers".
+---
+
+# TweetClaw Operator
+
+Use TweetClaw as the approved OpenClaw plugin for X/Twitter workflows.
+
+## Workflow
+
+- Identify whether the task is read-only research, export, monitoring, or publishing.
+- For writes, require explicit user approval before posting or replying.
+- Keep source links and timestamps with research findings.
+- Summarize API or auth blockers without exposing credentials.
+`;
+
 // =============================================================================
 // Wiring
 // =============================================================================
@@ -737,6 +755,12 @@ $("validate-btn").addEventListener("click", () => {
 $("example-btn").addEventListener("click", () => {
   $("skill-input").value = EXAMPLE;
   const report = validateSkill(EXAMPLE);
+  render(report);
+});
+
+$("tool-example-btn").addEventListener("click", () => {
+  $("skill-input").value = TOOL_EXAMPLE;
+  const report = validateSkill(TOOL_EXAMPLE);
   render(report);
 });
 
