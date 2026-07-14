@@ -581,7 +581,7 @@ function parseSkill(raw) {
   const fmBlock = lines.slice(1, closing).join("\n");
   result.body = lines.slice(closing + 1).join("\n");
 
-  // Parse the YAML — handle scalars and folded multi-line values.
+  // Parse the YAML, handle scalars and folded multi-line values.
   // Simple line-by-line parser; supports "key: value" and continuation lines
   // indented under a key (treated as continuation of that key's value).
   let currentKey = null;
