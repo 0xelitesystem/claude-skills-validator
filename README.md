@@ -77,6 +77,10 @@ This tool is meant to be run against skills written from the templates in [claud
 - Light and dark themes, OS preference honored
 - WCAG AA contrast on both themes
 
+## More
+
+Part of a catalog of single-file browser tools and plain-language references, all MIT licensed and dependency-free: [0xelitesystem.github.io](https://0xelitesystem.github.io/). Built by [elitesystem.ai](https://elitesystem.ai).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
