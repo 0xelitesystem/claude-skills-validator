@@ -85,6 +85,8 @@ Part of a catalog of single-file browser tools and plain-language references, al
 
 MIT. See [LICENSE](LICENSE).
 
+Independent project. Not affiliated with, endorsed by, or sponsored by Anthropic. Claude is a trademark of Anthropic PBC.
+
 ## Related
 
 - [claude-skills-templates](https://github.com/0xelitesystem/claude-skills-templates), five reference Skill patterns
