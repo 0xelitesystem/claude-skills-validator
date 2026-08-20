@@ -23,7 +23,8 @@ Open `index.html` in any browser. Or visit the hosted version at `https://0xelit
 2. Click Validate (or Cmd/Ctrl+Enter from the textarea).
 3. Read the report.
 
-Click "Load example" to see the validator working against a known-good SKILL.md.
+Click "Load example" to see a content skill, or "Load tool example" to see an
+integration-style skill with approval boundaries.
 
 ## What it checks
 
