@@ -809,11 +809,8 @@ if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").match
 (function () {
   var KEY = "theme";
   var btn = document.querySelector("#theme-toggle, #theme-btn, .theme-btn, .theme-toggle, [data-theme-toggle]");
-  function host() {
-    if (document.documentElement.hasAttribute("data-theme")) { return document.documentElement; }
-    if (document.body && document.body.hasAttribute("data-theme")) { return document.body; }
-    return document.documentElement;
-  }
+  // This page's own toggle switches <body> while <html> keeps a fixed brand theme, so remember <body>.
+  function host() { return document.body || document.documentElement; }
   function current() { return host().getAttribute("data-theme") || ""; }
   function setter() {
     if (typeof setTheme === "function") { return setTheme; }
