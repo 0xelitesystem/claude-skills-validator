@@ -4,7 +4,7 @@ Lint a Claude Skill `SKILL.md` file for spec compliance and triggering quality. 
 
 **Live demo:** https://0xelitesystem.github.io/claude-skills-validator/
 
-## Why
+## Why this exists
 
 A SKILL.md is a contract between you and Claude. The `description` field decides whether the skill triggers; the body decides what Claude does once it triggers. Both fields have failure modes:
 
@@ -15,7 +15,9 @@ A SKILL.md is a contract between you and Claude. The `description` field decides
 
 This validator catches these issues before you ship the skill. Each finding comes with a severity tag and a concrete fix.
 
-## Use it
+It is one HTML file that runs in your browser with no tracking, released under the MIT license.
+
+## Use
 
 Open `index.html` in any browser. Or visit the hosted version at `https://0xelitesystem.github.io/claude-skills-validator/` once GitHub Pages is enabled.
 
@@ -24,6 +26,10 @@ Open `index.html` in any browser. Or visit the hosted version at `https://0xelit
 3. Read the report.
 
 Click "Load example" to see the validator working against a known-good SKILL.md.
+
+## Privacy
+
+Everything runs in your browser. The SKILL.md you paste is checked locally and never sent anywhere or saved. The page makes no network requests. The only thing it stores is your light or dark theme choice, under the `theme` key in localStorage, after you click the theme button.
 
 ## What it checks
 
@@ -80,6 +86,19 @@ This tool is meant to be run against skills written from the templates in [claud
 ## More
 
 Part of a catalog of single-file browser tools and plain-language references, all MIT licensed and dependency-free: [0xelitesystem.github.io](https://0xelitesystem.github.io/). Built by [elitesystem.ai](https://elitesystem.ai).
+
+## Run locally
+
+```
+git clone https://github.com/0xelitesystem/claude-skills-validator
+cd claude-skills-validator
+```
+
+Open `index.html` in a browser, or serve the folder with `python -m http.server 8000` and visit http://localhost:8000.
+
+## Build
+
+No build step. The whole tool is one `index.html` file with inline CSS and JavaScript.
 
 ## License
 
